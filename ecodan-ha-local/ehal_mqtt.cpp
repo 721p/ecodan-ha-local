@@ -675,7 +675,7 @@ off
         const auto& config = config_instance();
         auto& status = hp::get_status();
         String discoveryTopic = String(F("homeassistant/number/")) + uniqueName + F("/config");
-        String stateTopic = config.MqttTopic + "/" + unique_entity_name(F("z1_flow_temp_target")) + F("/state");
+        String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
         String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
 
         JsonDocument doc;
@@ -699,6 +699,44 @@ off
         if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
         {
             log_web(F("Failed to publish homeassistant Z1 flow temperature set entity auto-discover"));
+            return false;
+        }
+
+        return true;
+    }
+
+    bool publish_ha_set_z2_flow_target_auto_discover()
+    {
+        // https://www.home-assistant.io/integrations/number.mqtt/
+        String uniqueName = unique_entity_name(F("z2_flow_temp_target"));
+
+        const auto& config = config_instance();
+        auto& status = hp::get_status();
+        String discoveryTopic = String(F("homeassistant/number/")) + uniqueName + F("/config");
+        String stateTopic = config.MqttTopic + "/" + uniqueName + F("/state");
+        String cmdTopic = config.MqttTopic + "/" + uniqueName + F("/set");
+
+        JsonDocument doc;
+        JsonObject payloadJson = doc.to<JsonObject>();
+        payloadJson[F("name")] = uniqueName;
+        payloadJson[F("unique_id")] = uniqueName;
+
+        add_discovery_device_object(payloadJson);
+
+        payloadJson[F("stat_t")] = stateTopic;
+        payloadJson[F("stat_t_tpl")] = F("{{ value }}");
+        payloadJson[F("cmd_t")] = cmdTopic;
+        payloadJson[F("cmd_tpl")] = F("{{ value }}");
+        payloadJson[F("min")] = String(ehal::hp::get_min_flow_target_temperature(status.hp_mode_as_string()));
+        payloadJson[F("max")] = String(ehal::hp::get_max_flow_target_temperature(status.hp_mode_as_string()));
+        payloadJson[F("step")] = 1;
+        payloadJson[F("dev_cla")] = F("temperature");
+        payloadJson[F("unit_of_meas")] = F("°C");
+        payloadJson[F("icon")] = String("mdi:thermometer-water");
+
+        if (!publish_mqtt(discoveryTopic, doc, /* retain =*/true))
+        {
+            log_web(F("Failed to publish homeassistant Z2 flow temperature set entity auto-discover"));
             return false;
         }
 
@@ -1017,6 +1055,9 @@ off
             return;
 
         if (!publish_ha_set_z1_flow_target_auto_discover())
+            return;
+
+        if (!publish_ha_set_z2_flow_target_auto_discover())
             return;
 
         if (!publish_ha_force_dhw_auto_discover())
@@ -1450,6 +1491,12 @@ off
             if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("z1_flow_temp_target")) + F("/set")))
             {
                 log_web(F("Failed to subscribe to Z1 flow target temperature command topic!"));
+                return false;
+            }
+
+            if (!mqttClient.subscribe(config.MqttTopic + "/" + unique_entity_name(F("z2_flow_temp_target")) + F("/set")))
+            {
+                log_web(F("Failed to subscribe to Z2 flow target temperature command topic!"));
                 return false;
             }
 

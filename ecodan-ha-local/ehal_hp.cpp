@@ -402,9 +402,11 @@ namespace ehal::hp
 
         Message cmd{MsgType::SET_CMD, SetType::BASIC_SETTINGS};
         cmd[1] = SET_SETTINGS_FLAG_ZONE_TEMPERATURE;
-        cmd[2] = static_cast<uint8_t>(SetZone::ZONE_2);
+        cmd[2] = static_cast<uint8_t>(SetZone::BOTH);
         cmd[6] = static_cast<uint8_t>(SetHpMode::FLOW_CONTROL_MODE);
-        cmd.set_float16(newTemp, 10);
+        cmd[7] = static_cast<uint8_t>(SetHpMode::FLOW_CONTROL_MODE);
+        cmd.set_float16(status.Zone1FlowTemperatureSetPoint, 10);
+        cmd.set_float16(newTemp, 12);
 
         {
             std::lock_guard<std::mutex> lock{cmdQueueMutex};
